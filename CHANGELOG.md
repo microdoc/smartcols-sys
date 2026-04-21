@@ -2,6 +2,12 @@
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-04-21
+
+### Changed
+
+- Updated `libsmartcols.h` to version `2.42.0`.
+
 ## [0.1.3] - 2026-01-09
 
 ### Changed

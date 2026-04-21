@@ -14,6 +14,7 @@
 extern "C" {
 #endif
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -23,7 +24,7 @@ extern "C" {
  *
  * Library version string
  */
-#define LIBSMARTCOLS_VERSION   "2.40.4"
+#define LIBSMARTCOLS_VERSION   "2.42.0"
 
 /**
  * libscols_iter:
@@ -144,6 +145,23 @@ enum {
 	SCOLS_CELL_FL_RIGHT   = (1 << 1)
 };
 
+
+#ifndef __GNUC_PREREQ
+# if defined __GNUC__ && defined __GNUC_MINOR__
+#  define __GNUC_PREREQ(maj, min)  ((__GNUC__ << 16) + __GNUC_MINOR__ >= ((maj) << 16) + (min))
+# else
+#  define __GNUC_PREREQ(maj, min) 0
+# endif
+#endif
+
+#ifndef __ul_attribute__
+# if __GNUC_PREREQ (3, 4)
+#  define __ul_attribute__(_a_) __attribute__(_a_)
+# else
+#  define __ul_attribute__(_a_)
+# endif
+#endif
+
 extern struct libscols_iter *scols_new_iter(int direction);
 extern void scols_free_iter(struct libscols_iter *itr);
 extern void scols_reset_iter(struct libscols_iter *itr, int direction);
@@ -189,6 +207,10 @@ extern size_t scols_cell_get_datasiz(struct libscols_cell *ce);
 extern int scols_cell_set_color(struct libscols_cell *ce, const char *color);
 extern const char *scols_cell_get_color(const struct libscols_cell *ce);
 
+extern int scols_cell_set_uri(struct libscols_cell *ce, const char *uri);
+extern const char *scols_cell_get_uri(const struct libscols_cell *ce);
+extern int scols_cell_disable_uri(struct libscols_cell *ce, int disable);
+
 extern int scols_cell_set_flags(struct libscols_cell *ce, int flags);
 extern int scols_cell_get_flags(const struct libscols_cell *ce);
 extern int scols_cell_get_alignment(const struct libscols_cell *ce);
@@ -228,15 +250,25 @@ extern void scols_unref_column(struct libscols_column *cl);
 extern struct libscols_column *scols_copy_column(const struct libscols_column *cl);
 extern int scols_column_set_whint(struct libscols_column *cl, double whint);
 extern double scols_column_get_whint(const struct libscols_column *cl);
+
 extern struct libscols_cell *scols_column_get_header(struct libscols_column *cl);
+extern int scols_column_set_headercolor(struct libscols_column *cl, const char *color);
+extern const char *scols_column_get_headercolor(struct libscols_column *cl);
+
 extern int scols_column_set_color(struct libscols_column *cl, const char *color);
 extern const char *scols_column_get_color(const struct libscols_column *cl);
 extern struct libscols_table *scols_column_get_table(const struct libscols_column *cl);
+
+extern int scols_column_set_uri(struct libscols_column *cl, const char *uri);
+extern const char *scols_column_get_uri(const struct libscols_column *cl);
 
 extern int scols_column_set_name(struct libscols_column *cl, const char *name);
 extern const char *scols_column_get_name(struct libscols_column *cl);
 extern const char *scols_column_get_name_as_shellvar(struct libscols_column *cl);
 extern int scols_shellvar_name(const char *name, char **buf, size_t *bufsz);
+
+extern int scols_column_refer_annotation(struct libscols_column *cl, const char *annotation);
+extern const char *scols_column_get_annotation(struct libscols_column *cl);
 
 extern int scols_column_set_properties(struct libscols_column *cl, const char *opts);
 
@@ -291,10 +323,18 @@ extern struct libscols_cell *scols_line_get_column_cell(
 		                        struct libscols_column *cl);
 extern int scols_line_set_data(struct libscols_line *ln, size_t n, const char *data);
 extern int scols_line_refer_data(struct libscols_line *ln, size_t n, char *data);
+extern int scols_line_vprintf(struct libscols_line *ln, size_t n, const char *fmt, va_list ap)
+	__ul_attribute__((format(printf, 3, 0)));
+extern int scols_line_sprintf(struct libscols_line *ln, size_t n, const char *fmt, ...)
+	__ul_attribute__((format(printf, 3, 4)));
 extern int scols_line_is_filled(struct libscols_line *ln, size_t n);
 extern int scols_line_set_column_data(struct libscols_line *ln, struct libscols_column *cl, const char *data);
 extern const char *scols_line_get_column_data(struct libscols_line *ln, struct libscols_column *cl);
 extern int scols_line_refer_column_data(struct libscols_line *ln, struct libscols_column *cl, char *data);
+extern int scols_line_vprintf_column(struct libscols_line *ln, struct libscols_column *cl, const char *fmt, va_list ap)
+	__ul_attribute__((format(printf, 3, 0)));
+extern int scols_line_sprintf_column(struct libscols_line *ln, struct libscols_column *cl, const char *fmt, ...)
+	__ul_attribute__((format(printf, 3, 4)));
 extern struct libscols_line *scols_copy_line(const struct libscols_line *ln);
 
 /* table */
@@ -419,6 +459,8 @@ extern int scols_line_apply_filter(struct libscols_line *ln,
 
 extern int scols_filter_next_holder(struct libscols_filter *fltr,
                         struct libscols_iter *itr, const char **name, int type);
+extern int scols_filter_has_holder(struct libscols_filter *fltr, const char *name);
+
 extern int scols_filter_assign_column(struct libscols_filter *fltr,
 			struct libscols_iter *itr,
                         const char *name, struct libscols_column *col);
